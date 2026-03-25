@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demo – AI Lead Responder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #4338ca; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .success {
+      display: none;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .success .icon { font-size: 48px; margin-bottom: 12px; }
+    .success h2 { color: #1a1a2e; margin-bottom: 8px; }
+    .success p { color: #666; font-size: 14px; line-height: 1.6; }
+
+    .timer {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-top: 16px;
+    }
+
+    .powered {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="formSection">
+      <div class="badge">⚡ Odpověď do 30 sekund</div>
+      <h1>Máte zájem o spolupráci?</h1>
+      <p class="subtitle">Vyplňte formulář a náš AI asistent vám okamžitě odpoví s dalšími kroky.</p>
+
+      <form id="leadForm">
+        <label>Vaše jméno</label>
+        <input type="text" id="name" placeholder="Jan Novák" required />
+
+        <label>Emailová adresa</label>
+        <input type="email" id="email" placeholder="jan@firma.cz" required />
+
+        <label>Popište váš projekt nebo dotaz</label>
+        <textarea id="message" placeholder="Např: Hledám někoho kdo mi vytvoří web pro e-shop se zbožím..." required></textarea>
+
+        <button type="submit" id="submitBtn">Odeslat poptávku →</button>
+      </form>
+    </div>
+
+    <div class="success" id="successSection">
+      <div class="icon">✅</div>
+      <h2>Zpráva odeslána!</h2>
+      <p>Děkujeme za váš zájem.<br/>Zkontrolujte svůj email — odpověď dorazí do 30 sekund.</p>
+      <div class="timer" id="timer">⏱ Čekám na odpověď: <span id="seconds">30</span>s</div>
+    </div>
+
+    <div class="powered">Powered by AI Lead Responder</div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = 'https://ai-lead-responder-production.up.railway.app/api/webhook';
+
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Odesílám...';
+
+      const data = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        message: document.getElementById('message').value,
+      };
+
+      try {
+        await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        document.getElementById('formSection').style.display = 'none';
+        document.getElementById('successSection').style.display = 'block';
+
+        let seconds = 30;
+        const interval = setInterval(() => {
+          seconds--;
+          document.getElementById('seconds').textContent = seconds;
+          if (seconds <= 0) {
+            clearInterval(interval);
+            document.getElementById('timer').textContent = '📬 Email by měl být ve vaší schránce!';
+          }
+        }, 1000);
+
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Odeslat poptávku →';
+        alert('Chyba při odesílání. Zkuste to prosím znovu.');
+      }
+    });
+  </script>
+</body>
+</html>
