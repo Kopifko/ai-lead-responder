@@ -1,12 +1,19 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const apiKey = process.env.RESEND_API_KEY;
+const gmailUser = process.env.GMAIL_USER;
+const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
 
-if (!apiKey) {
-  throw new Error('Missing RESEND_API_KEY environment variable');
+if (!gmailUser || !gmailAppPassword) {
+  throw new Error('Missing GMAIL_USER or GMAIL_APP_PASSWORD environment variables');
 }
 
-export const resendClient = new Resend(apiKey);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: gmailUser,
+    pass: gmailAppPassword,
+  },
+});
 
 export async function sendReplyEmail(to: string, name: string, reply: string): Promise<void> {
   const companyName = process.env.COMPANY_NAME || 'Naše společnost';
@@ -30,15 +37,11 @@ ${contactName ? contactName + '\n' : ''}${companyName}${contactPhone ? '\nTel: '
     </p>
   `;
 
-  const { error } = await resendClient.emails.send({
-    from: `${companyName} <onboarding@resend.dev>`,
+  await transporter.sendMail({
+    from: `${companyName} <${gmailUser}>`,
     to,
     subject: `Děkujeme za váš zájem, ${name}!`,
     text: `${reply}\n\n${signature}`,
     html: `<p>${reply.replace(/\n/g, '<br/>')}</p>${htmlSignature}`,
   });
-
-  if (error) {
-    throw new Error(`Resend email error: ${error.message}`);
-  }
 }
