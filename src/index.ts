@@ -1,9 +1,12 @@
 import 'dotenv/config';
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { webhookRouter } from './routes/webhook.js';
 
 const app = new Hono();
+
+app.use('*', cors());
 
 app.route('/api/webhook', webhookRouter);
 
