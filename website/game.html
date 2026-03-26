@@ -338,7 +338,7 @@ class Van {
     if(this.fuel<=0&&Math.abs(this.spd)<2.5){ this.alive=false; this.why='fuel'; }
   }
 
-  draw(ctx,camX,t){
+  draw(ctx,camX,t,sprite){
     const rx=this.x-WHEELBASE/2;
     const fx=this.x+WHEELBASE/2;
     const ry=heightAt(rx);
@@ -359,7 +359,16 @@ class Van {
     ctx.save();
     ctx.translate(sx,sy);
     ctx.rotate(this.ang);
-    this._body(ctx,t);
+    if(sprite){
+      // Use actual van photo as sprite (background already removed)
+      // Crop: remove outer 4% border where background remnants are
+      const sw=sprite.width, sh=sprite.height;
+      const cropX=sw*0.04, cropY=sh*0.06;
+      const cropW=sw*0.92, cropH=sh*0.72;
+      ctx.drawImage(sprite, cropX,cropY,cropW,cropH, -VW/2,-VH/2, VW,VH);
+    } else {
+      this._body(ctx,t);
+    }
     ctx.restore();
 
     // Headlight beam
@@ -622,9 +631,41 @@ class Game {
     this.dustT=0; this.exhaustT=0;
     this.shake=0;
     this._urects=[]; this._playBtn=null; this._menuBtn=null;
+    this.vanSprite=null;
+    this._loadVanSprite();
 
     canvas.addEventListener('click',e=>this._click(e));
     canvas.addEventListener('touchend',e=>{e.preventDefault();this._click(e.changedTouches[0]);},{passive:false});
+  }
+
+  _loadVanSprite(){
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{ this.vanSprite=this._removeBackground(img); };
+    img.src='assets/dodavka.jpeg';
+  }
+
+  _removeBackground(img){
+    const c=document.createElement('canvas');
+    c.width=img.width; c.height=img.height;
+    const x=c.getContext('2d');
+    x.drawImage(img,0,0);
+    const d=x.getImageData(0,0,c.width,c.height);
+    const px=d.data;
+    for(let i=0;i<px.length;i+=4){
+      const r=px[i],g=px[i+1],b=px[i+2];
+      const brightness=(r+g+b)/3;
+      const max=Math.max(r,g,b),min=Math.min(r,g,b);
+      const sat=max>0?(max-min)/max:0;
+      // Background: low saturation + brightness above threshold
+      if(sat<0.22&&brightness>125){
+        // Smooth edge: fade from opaque(125) to transparent(175)
+        const a=Math.max(0,1-(brightness-125)/50);
+        px[i+3]=Math.round(a*255);
+      }
+    }
+    x.putImageData(d,0,0);
+    return c;
   }
 
   _click(e){
@@ -735,7 +776,7 @@ class Game {
       this._drawCoin(ctx,c.x-this.camX,c.y+Math.sin(this.t*2.8+c.bob)*5,c.rot);
     }
 
-    this.van.draw(ctx,this.camX,this.t);
+    this.van.draw(ctx,this.camX,this.t,this.vanSprite);
     this._drawSpeedLines(ctx);
     this._drawDangerVignette(ctx);
     this._drawHUD(ctx);
