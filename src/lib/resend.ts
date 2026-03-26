@@ -13,7 +13,7 @@ export async function sendReplyEmail(to: string, name: string, reply: string): P
   const contactName = process.env.CONTACT_NAME || '';
   const contactPhone = process.env.CONTACT_PHONE || '';
   const contactWeb = process.env.CONTACT_WEB || '';
-  const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+  const fromEmail = process.env.FROM_EMAIL || 'info@kteam90.cz';
 
   const signature = `
 --
