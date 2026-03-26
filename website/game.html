@@ -640,8 +640,11 @@ class Game {
 
   _loadVanSprite(){
     const img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=()=>{ this.vanSprite=this._removeBackground(img); };
+    img.onload=()=>{
+      try{ this.vanSprite=this._removeBackground(img); }
+      catch(e){ console.warn('van sprite bg removal failed:',e); }
+    };
+    img.onerror=()=>console.warn('dodavka.jpeg not found');
     img.src='assets/dodavka.jpeg';
   }
 
