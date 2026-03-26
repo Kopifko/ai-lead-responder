@@ -345,17 +345,13 @@ class Van {
     const fy=heightAt(fx);
     const midY=(ry+fy)/2;
     const sx=this.x-camX;
-    // Van body center: wheels stick out WR*0.55 below van bottom
-    const sy=midY-WR*0.55-VH/2+clamp(this.suspBounce,-7,7);
+    // Van bottom sits exactly at wheel tops (midY - WR)
+    const sy=midY-WR-VH/2+clamp(this.suspBounce,-5,5);
 
-    // Suspension lines (axles) — from wheel center up to van bottom
-    const vanBottom=sy+VH/2;
-    ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=5;
-    ctx.beginPath(); ctx.moveTo(rx-camX,ry); ctx.lineTo(rx-camX,vanBottom); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx-camX,fy); ctx.lineTo(fx-camX,vanBottom); ctx.stroke();
-    ctx.strokeStyle='#2a2a2a'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(rx-camX,ry); ctx.lineTo(rx-camX,vanBottom); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx-camX,fy); ctx.lineTo(fx-camX,vanBottom); ctx.stroke();
+    // Short axle bolts only (no tall stilts)
+    ctx.strokeStyle='#222'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(rx-camX,ry-1); ctx.lineTo(rx-camX,ry-WR+2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(fx-camX,fy-1); ctx.lineTo(fx-camX,fy-WR+2); ctx.stroke();
 
     this._wheel(ctx,rx-camX,ry,this.wAng);
     this._wheel(ctx,fx-camX,fy,this.wAng);
