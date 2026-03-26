@@ -78,9 +78,9 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // ─────────────────────────────────────────────────────────────────────────────
 const W=800, H=420;
 const STEP=5;
-const WHEELBASE=104;
-const VW=140, VH=62;
-const WR=22;
+const WHEELBASE=108;
+const VW=148, VH=74;
+const WR=20;
 const BASE_Y=282;
 const GRAVITY=295;
 const K_SPRING=20;   // angular spring (increased from 14)
@@ -345,15 +345,17 @@ class Van {
     const fy=heightAt(fx);
     const midY=(ry+fy)/2;
     const sx=this.x-camX;
-    const sy=midY-WR*1.9+clamp(this.suspBounce,-7,7);
+    // Van body center: wheels stick out WR*0.55 below van bottom
+    const sy=midY-WR*0.55-VH/2+clamp(this.suspBounce,-7,7);
 
-    // Suspension lines (axles)
+    // Suspension lines (axles) — from wheel center up to van bottom
+    const vanBottom=sy+VH/2;
     ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=5;
-    ctx.beginPath(); ctx.moveTo(rx-camX,ry); ctx.lineTo(rx-camX,sy+VH/2-3); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx-camX,fy); ctx.lineTo(fx-camX,sy+VH/2-3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rx-camX,ry); ctx.lineTo(rx-camX,vanBottom); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(fx-camX,fy); ctx.lineTo(fx-camX,vanBottom); ctx.stroke();
     ctx.strokeStyle='#2a2a2a'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(rx-camX,ry); ctx.lineTo(rx-camX,sy+VH/2-3); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx-camX,fy); ctx.lineTo(fx-camX,sy+VH/2-3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rx-camX,ry); ctx.lineTo(rx-camX,vanBottom); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(fx-camX,fy); ctx.lineTo(fx-camX,vanBottom); ctx.stroke();
 
     this._wheel(ctx,rx-camX,ry,this.wAng);
     this._wheel(ctx,fx-camX,fy,this.wAng);
@@ -370,7 +372,7 @@ class Van {
       ctx.translate(sx,sy);
       ctx.rotate(this.ang);
       const ba=Math.min(this.spd/180,0.22);
-      const grad=ctx.createRadialGradient(VW/2+2,-VH*0.26,3,VW/2+2,-VH*0.26,140);
+      const grad=ctx.createRadialGradient(VW/2+2,-VH*0.24,3,VW/2+2,-VH*0.24,140);
       grad.addColorStop(0,`rgba(255,255,200,${ba})`);
       grad.addColorStop(1,'transparent');
       ctx.fillStyle=grad;
