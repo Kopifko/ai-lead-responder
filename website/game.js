@@ -93,85 +93,40 @@ function cylinder(r, h, seg, mat) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// VAN
+// VAN — sprite z van-transparent.png
 // ─────────────────────────────────────────────────────────────
-function buildVan() {
-  const g = new THREE.Group();
-
-  // body
-  const body = box(2.0, 0.88, 1.08, toon(C_VAN));
-  body.position.set(-0.22, 0.44, 0);
-  g.add(body);
-
-  // cab
-  const cab = box(0.82, 0.72, 1.04, toon(0xcc1a1f));
-  cab.position.set(0.82, 0.36, 0);
-  g.add(cab);
-
-  // windshield
-  const ws = box(0.06, 0.46, 0.82, toon(C_GLASS, true, 0.65));
-  ws.position.set(1.17, 0.58, 0);
-  ws.rotation.z = 0.38;
-  g.add(ws);
-
-  // roof rack
-  const rack = box(1.85, 0.07, 0.88, toon(C_DARK));
-  rack.position.set(-0.18, 0.91, 0);
-  g.add(rack);
-
-  // front bumper
-  const bumper = box(0.14, 0.22, 1.0, toon(0x222222));
-  bumper.position.set(1.26, 0.11, 0);
-  g.add(bumper);
-
-  // headlights
-  for (const z of [-0.3, 0.3]) {
-    const hl = box(0.07, 0.13, 0.15, new THREE.MeshStandardMaterial({
-      color: 0xfff8cc, emissive: 0xfff8cc, emissiveIntensity: 2
-    }));
-    hl.position.set(1.3, 0.38, z);
-    g.add(hl);
-  }
-
-  // side mirrors
-  for (const z of [-0.56, 0.56]) {
-    const mir = box(0.26, 0.1, 0.07, toon(C_DARK));
-    mir.position.set(0.9, 0.72, z);
-    g.add(mir);
-  }
-
-  // wheels
-  const wheelMat = toon(C_WHEEL);
-  const rimMat   = toon(0x444444);
-  const wheelPos = [
-    [ 0.76, 0.22,  0.58],
-    [ 0.76, 0.22, -0.58],
-    [-0.76, 0.22,  0.58],
-    [-0.76, 0.22, -0.58],
-  ];
-  for (const [x, y, z] of wheelPos) {
-    const w = cylinder(0.22, 0.2, 14, wheelMat);
-    w.rotation.z = Math.PI / 2;
-    w.position.set(x, y, z);
-    g.add(w);
-
-    const rim = cylinder(0.13, 0.21, 6, rimMat);
-    rim.rotation.z = Math.PI / 2;
-    rim.position.set(x, y, z);
-    g.add(rim);
-  }
-
-  // logo stripe
-  const stripe = box(1.6, 0.18, 0.02, toon(C_DARK));
-  stripe.position.set(-0.2, 0.44, 0.55);
-  g.add(stripe);
-
-  return g;
-}
-
-const van = buildVan();
-van.position.set(0, 0, 0);
+const van = new THREE.Group();
 scene.add(van);
+
+// Načtení textury
+const vanTex = new THREE.TextureLoader().load('assets/van-transparent.png');
+vanTex.colorSpace = THREE.SRGBColorSpace;
+
+// Sprite vždy otočený k~kameře
+const spriteMat = new THREE.SpriteMaterial({
+  map: vanTex,
+  transparent: true,
+  alphaTest: 0.05,
+  depthWrite: false,
+  sizeAttenuation: true,
+});
+const vanSprite = new THREE.Sprite(spriteMat);
+
+// Proporce PNG (přibližně 2:1 šírka:výška)
+vanSprite.scale.set(3.8, 2.0, 1);
+vanSprite.position.set(0, 1.0, 0);   // střed spritu 1 m nad silnicí
+van.add(vanSprite);
+
+// Stín pod dodávkou (tmavá elipsa na silnici)
+const shadowMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.8, 1.0),
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false })
+);
+shadowMesh.rotation.x = -Math.PI / 2;
+shadowMesh.position.y = 0.01;
+van.add(shadowMesh);
+
+// Červená záře pod dodávkou
 vanGlow.position.set(0, 0.3, 0);
 van.add(vanGlow);
 
@@ -509,12 +464,8 @@ function animate() {
     // subtle camera bob
     camera.position.y = 3.6 + Math.sin(elapsed * 7) * 0.018 * speedMult;
 
-    // wheel spin
-    van.children.forEach(c => {
-      if (c.geometry && c.geometry.type === 'CylinderGeometry' && c.position.y < 0.5) {
-        c.rotation.x += spd * dt * 1.8;
-      }
-    });
+    // sprite mírně kolísá (breathing effect)
+    vanSprite.material.rotation = Math.sin(elapsed * 3) * 0.015;
 
     // move road segments
     for (const seg of segments) {
