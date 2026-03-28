@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KTEAM 90 — Runner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: 'Oswald', sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #c { display: block; width: 100vw; height: 100vh; }
+
+    /* ── HUD ── */
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 24px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      pointer-events: none; z-index: 4;
+    }
+    .hud-block { text-align: center; }
+    .hud-logo  { color: #e31e24; font-weight: 700; font-size: 1rem; letter-spacing: 0.1em; }
+    .hud-sub   { font-size: 0.65rem; color: #555; letter-spacing: 0.2em; text-transform: uppercase; }
+    .hud-val   { font-size: 2rem; font-weight: 700; line-height: 1;
+                 text-shadow: 0 0 20px rgba(227,30,36,0.6); }
+    .hud-label { font-size: 0.65rem; color: #666; letter-spacing: 0.2em; text-transform: uppercase; }
+
+    /* ── scanlines ── */
+    #scanlines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 5;
+      background: repeating-linear-gradient(0deg,
+        transparent, transparent 2px,
+        rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    }
+
+    /* ── overlay ── */
+    #overlay {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: rgba(0,0,0,0.85);
+      transition: opacity 0.3s;
+    }
+    #overlay.hidden { display: none; }
+
+    #overlay h1 {
+      font-size: clamp(2.8rem, 10vw, 5.5rem);
+      color: #e31e24;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 50px rgba(227,30,36,0.5);
+      line-height: 1;
+    }
+    .ov-sub {
+      color: #888; font-size: 0.85rem;
+      letter-spacing: 0.25em; text-transform: uppercase;
+    }
+    .ov-score {
+      font-size: 2.8rem; font-weight: 700;
+      text-shadow: 0 0 30px rgba(227,30,36,0.5);
+    }
+    .ov-score.hidden { display: none; }
+
+    #nameInput {
+      background: #141414;
+      border: 2px solid #e31e24;
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.15rem;
+      padding: 10px 22px;
+      text-align: center;
+      outline: none;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      width: 260px;
+    }
+    #nameInput::placeholder { color: #444; }
+
+    .btn-game {
+      background: #e31e24; color: #fff;
+      border: 2px solid #e31e24; border-radius: 8px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 13px 36px; cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+    .btn-game:hover {
+      background: transparent; color: #e31e24;
+      box-shadow: 0 0 28px rgba(227,30,36,0.45);
+    }
+    .btn-game.secondary {
+      background: transparent; color: #888;
+      border-color: rgba(255,255,255,0.15);
+    }
+    .btn-game.secondary:hover { border-color: #e31e24; color: #fff; }
+    .btn-game:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
+
+    /* ── mini leaderboard in overlay ── */
+    #miniLb { width: 300px; border-collapse: collapse; font-size: 0.85rem; }
+    #miniLb th {
+      font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: #555; padding: 6px 10px;
+      border-bottom: 1px solid rgba(227,30,36,0.25); text-align: left;
+    }
+    #miniLb td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #aaa; }
+    #miniLb tr.rank-1 td { color: #ffd700; }
+    #miniLb tr.rank-2 td { color: #c0c0c0; }
+    #miniLb tr.rank-3 td { color: #cd7f32; }
+    #miniLb td:first-child { color: #e31e24; font-weight: 700; width: 28px; }
+    #miniLb.hidden { display: none; }
+
+    /* ── touch hint ── */
+    #touchHint {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      color: #333; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase;
+      pointer-events: none; z-index: 6;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="c"></canvas>
+  <div id="scanlines"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-block">
+      <div class="hud-logo">KTEAM 90</div>
+      <div class="hud-sub">Runner</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-val" id="scoreDisplay">0</div>
+      <div class="hud-label">Score</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-val" id="speedDisplay">1.0×</div>
+      <div class="hud-label">Speed</div>
+    </div>
+  </div>
+
+  <!-- Overlay (start + game over) -->
+  <div id="overlay">
+    <h1 id="ovTitle">KTEAM 90</h1>
+    <p class="ov-sub" id="ovSub">Endless Runner</p>
+    <p class="ov-score hidden" id="ovScore"></p>
+    <input id="nameInput" type="text" maxlength="16" placeholder="TVOJE JMÉNO" autocomplete="off" spellcheck="false" />
+    <button class="btn-game" id="startBtn">SPUSTIT HRU</button>
+    <table id="miniLb" class="hidden">
+      <thead><tr><th>#</th><th>Hráč</th><th>Skóre</th></tr></thead>
+      <tbody id="miniLbBody"></tbody>
+    </table>
+    <a href="index.html" class="btn-game secondary">← Zpět na web</a>
+  </div>
+
+  <div id="touchHint">← Swipe →&nbsp;&nbsp;nebo&nbsp;&nbsp;← → / A D</div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
