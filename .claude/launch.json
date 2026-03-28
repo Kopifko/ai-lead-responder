@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "API Server (Hono)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "Website (Static)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "website", "-p", "5500"],
+      "port": 5500
+    }
+  ]
+}
